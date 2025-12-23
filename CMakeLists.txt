@@ -10,10 +10,8 @@ add_executable(projekt-aisd
         src/minheap.cpp
         src/huffman.cpp
         src/io.cpp
-        src/main.cpp
-        src/io.h
         src/huffman.h
-        src/minheap.h
+        src/io.h
 )
 
 target_include_directories(projekt-aisd PRIVATE src)
