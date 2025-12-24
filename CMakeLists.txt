@@ -7,11 +7,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(projekt-aisd
         src/main.cpp
-        src/minheap.cpp
         src/huffman.cpp
         src/io.cpp
-        src/huffman.h
-        src/io.h
 )
 
 target_include_directories(projekt-aisd PRIVATE src)

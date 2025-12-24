@@ -5,6 +5,10 @@
 #include "minheap.h"
 #include "huffman.h"
 
+bool compareHuffmanNodes(HuffmanNode* const& a, HuffmanNode* const& b) {
+    return a->freq < b->freq;
+}
+
 std::unordered_map<char, int> countFrequencies(const std::string& text) {
     std::unordered_map<char, int> freq;
     for (char c : text) {
@@ -14,49 +18,33 @@ std::unordered_map<char, int> countFrequencies(const std::string& text) {
 }
 
 HuffmanNode* buildHuffmanTree(const std::unordered_map<char, int>& freq) {
-    struct HeapItem {
-        HuffmanNode* node;
-        int priority;
-    };
+    MinHeap<HuffmanNode*> heap(freq.size(), compareHuffmanNodes);
 
-    MinHeap heap(freq.size());
-
-    std::vector<HuffmanNode*> nodes;
-
-    // Wstaw liście
     for (const auto& [ch, f] : freq) {
-        HuffmanNode* node = new HuffmanNode(ch, f);
-        nodes.push_back(node);
-        heap.insert({ch, f});
+        heap.insert(new HuffmanNode(ch, f));
     }
 
-    return nodes.front(); // placeholder
+    while (heap.getSize() > 1) {
+        HuffmanNode* left = heap.extractMin();
+        HuffmanNode* right = heap.extractMin();
+        heap.insert(new HuffmanNode(left, right));
+    }
+
+    return heap.extractMin();
 }
 
-int main(int argc, char* argv[]) {
-
-    // TESTOWY TEKST
+int main() {
     std::string text = "ABRACADABRA";
 
-    // Liczenie częstotliwości
     auto freq = countFrequencies(text);
-
-    std::cout << "Czestotliwosci znakow:\n";
-    for (const auto& [ch, f] : freq) {
-        std::cout << ch << " : " << f << std::endl;
-    }
-
-    // Budowa drzewa Huffmana
     HuffmanNode* root = buildHuffmanTree(freq);
 
-    // Generowanie kodów
     std::unordered_map<char, std::string> codes;
     generateCodes(root, "", codes);
 
-    // Wypisanie slownika
-    std::cout << "\nKody Huffmana:\n";
+    std::cout << "Kody Huffmana:\n";
     for (const auto& [ch, code] : codes) {
-        std::cout << ch << " -> " << code << std::endl;
+        std::cout << ch << " -> " << code << "\n";
     }
 
     return 0;
