@@ -9,6 +9,7 @@ add_executable(projekt-aisd
         src/main.cpp
         src/huffman.cpp
         src/io.cpp
+        src/io.h
 )
 
 target_include_directories(projekt-aisd PRIVATE src)

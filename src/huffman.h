@@ -1,12 +1,12 @@
 #ifndef HUFFMAN_H
 #define HUFFMAN_H
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 struct HuffmanNode {
-    char ch;                 // znak (tylko dla liści)
-    int freq;                // częstotliwość
+    char ch;
+    int freq;
     HuffmanNode* left;
     HuffmanNode* right;
 
@@ -20,5 +20,13 @@ struct HuffmanNode {
 void generateCodes(HuffmanNode* node,
                    const std::string& prefix,
                    std::unordered_map<char, std::string>& codes);
+
+void compressFile(const std::string& inputFile,
+                  const std::string& outputFile);
+
+void decompressFile(const std::string& inputFile,
+                    const std::string& outputFile);
+
+void runHeapDemo();
 
 #endif
