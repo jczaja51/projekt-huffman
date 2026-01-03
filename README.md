@@ -116,20 +116,20 @@ Kodowanie Huffmana – kompresja i dekompresja plików (C++)
    ./projekt-aisd heap-demo
 
 7. Format pliku skompresowanego .huf
-   Plik wynikowy ma format tekstowy:
-   #HUFFMAN
-   #DICT
-   A:0110
-   :110
-   a:10
-   ...
-   #DATA
-   011011111011001010...
+Plik wynikowy ma format tekstowy:
+#HUFFMAN
+#DICT
+A:0110
+:110
+a:10
+...
+#DATA
+011011111011001010...
 
-   #DICT – słownik kodów Huffmana (znak → kod binarny)
-   #DATA – zakodowany strumień bitów
+#DICT – słownik kodów Huffmana (znak → kod binarny)
+#DATA – zakodowany strumień bitów
 
-8. Zabezpieczenia i walidacja
+10. Zabezpieczenia i walidacja
    Program zawiera m.in.:
    -sprawdzanie istnienia plików wejściowych,
    -możliwość utworzenia pliku wejściowego z poziomu programu,
