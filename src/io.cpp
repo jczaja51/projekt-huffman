@@ -36,7 +36,12 @@ void writeCompressedFile(const std::string& filename,
     file << "#DICT\n";
 
     for (const auto& [ch, code] : codes) {
-        file << (int)(unsigned char)ch << ":" << code << "\n";
+        if (ch == '\n')
+            file << "\\n:" << code << "\n";
+        else if (ch == ' ')
+            file << " :" << code << "\n";
+        else
+            file << ch << ":" << code << "\n";
     }
 
     file << "#DATA\n";
@@ -53,7 +58,12 @@ CompressedData readCompressedFile(const std::string& filename) {
     std::string line;
 
     std::getline(file, line);
+    if (line != "#HUFFMAN")
+        throw std::runtime_error("Niepoprawny format pliku");
+
     std::getline(file, line);
+    if (line != "#DICT")
+        throw std::runtime_error("Brak sekcji #DICT");
 
     while (std::getline(file, line)) {
         if (line == "#DATA") break;
@@ -62,18 +72,18 @@ CompressedData readCompressedFile(const std::string& filename) {
         size_t pos = line.find(':');
         if (pos == std::string::npos) continue;
 
-        std::string left = line.substr(0, pos);
-        std::string right = line.substr(pos + 1);
+        std::string symbol = line.substr(0, pos);
+        std::string code   = line.substr(pos + 1);
 
-        bool isNumber = !left.empty() &&
-                        std::all_of(left.begin(), left.end(), ::isdigit);
-        if (!isNumber) continue;
+        char ch;
+        if (symbol == "\\n")
+            ch = '\n';
+        else if (symbol == " ")
+            ch = ' ';
+        else
+            ch = symbol[0];
 
-        int ascii = std::stoi(left);
-        if (ascii < 0 || ascii > 255) continue;
-
-        char ch = static_cast<char>(ascii);
-        data.reverseDict[right] = ch;
+        data.reverseDict[code] = ch;
     }
 
     std::ostringstream bits;
