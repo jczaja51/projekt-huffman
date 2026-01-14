@@ -3,7 +3,6 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <algorithm>
 
 std::string readTextFromFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);
