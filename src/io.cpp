@@ -1,93 +1,111 @@
 #include "io.h"
 
 #include <fstream>
-#include <sstream>
 #include <stdexcept>
+#include <iterator>
+#include <vector>
+#include <unordered_map>
 
 std::string readTextFromFile(const std::string& filename) {
+    // Czytamy cały plik 1:1 jako bajty (tryb binary = brak konwersji końców linii).
     std::ifstream file(filename, std::ios::binary);
     if (!file) {
         throw std::runtime_error("Nie mozna otworzyc pliku wejsciowego: " + filename);
     }
 
-    std::ostringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
+    return std::string(
+        (std::istreambuf_iterator<char>(file)),
+        std::istreambuf_iterator<char>()
+    );
 }
 
 void writeTextToFile(const std::string& filename, const std::string& text) {
+    // Zapisujemy dokładnie tyle bajtów, ile ma tekst (bez żadnych modyfikacji).
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
         throw std::runtime_error("Nie mozna zapisac pliku: " + filename);
     }
-    file << text;
+
+    file.write(text.data(), static_cast<std::streamsize>(text.size()));
 }
 
 void writeCompressedFile(const std::string& filename,
-                          const std::unordered_map<char, std::string>& codes,
-                          const std::string& encodedBits) {
-    std::ofstream file(filename);
+                         const std::unordered_map<char, std::string>& codes,
+                         const std::vector<uint8_t>& data,
+                         uint32_t bitCount) {
+
+    std::ofstream file(filename, std::ios::binary);
     if (!file) {
         throw std::runtime_error("Nie mozna otworzyc pliku wyjsciowego: " + filename);
     }
 
-    file << "#HUFFMAN\n";
-    file << "#DICT\n";
+    // 1) Rozmiar słownika
+    uint32_t dictSize = static_cast<uint32_t>(codes.size());
+    file.write(reinterpret_cast<char*>(&dictSize), sizeof(dictSize));
 
+    // 2) Wpisy słownika: znak + długość kodu + kod jako tekst '0'/'1'
     for (const auto& [ch, code] : codes) {
-        if (ch == '\n')
-            file << "\\n:" << code << "\n";
-        else if (ch == ' ')
-            file << " :" << code << "\n";
-        else
-            file << ch << ":" << code << "\n";
+        file.write(&ch, sizeof(char));
+
+        uint8_t codeLen = static_cast<uint8_t>(code.size());
+        file.write(reinterpret_cast<char*>(&codeLen), sizeof(codeLen));
+
+        file.write(code.data(), codeLen);
     }
 
-    file << "#DATA\n";
-    file << encodedBits;
+    // 3) Liczba ważnych bitów (pozwala dekoderowi pominąć zera dopchane w ostatnim bajcie)
+    file.write(reinterpret_cast<char*>(&bitCount), sizeof(bitCount));
+
+    // 4) Dane binarne (bajty)
+    if (!data.empty()) {
+        file.write(reinterpret_cast<const char*>(data.data()),
+                   static_cast<std::streamsize>(data.size()));
+    }
 }
 
 CompressedData readCompressedFile(const std::string& filename) {
-    std::ifstream file(filename);
+    // Odczyt zgodnie z formatem z writeCompressedFile + walidacja (wyjątek, jeśli plik ucięty/uszkodzony).
+    std::ifstream file(filename, std::ios::binary);
     if (!file) {
         throw std::runtime_error("Nie mozna otworzyc pliku: " + filename);
     }
 
-    CompressedData data;
-    std::string line;
+    CompressedData cd;
 
-    std::getline(file, line);
-    if (line != "#HUFFMAN")
-        throw std::runtime_error("Niepoprawny format pliku");
+    // 1) dictSize
+    uint32_t dictSize;
+    file.read(reinterpret_cast<char*>(&dictSize), sizeof(dictSize));
+    if (!file) throw std::runtime_error("Uszkodzony plik: brak dictSize");
 
-    std::getline(file, line);
-    if (line != "#DICT")
-        throw std::runtime_error("Brak sekcji #DICT");
-
-    while (std::getline(file, line)) {
-        if (line == "#DATA") break;
-        if (line.empty()) continue;
-
-        size_t pos = line.find(':');
-        if (pos == std::string::npos) continue;
-
-        std::string symbol = line.substr(0, pos);
-        std::string code   = line.substr(pos + 1);
-
+    // 2) Słownik (czytamy do reverseDict: "101" -> 'a')
+    for (uint32_t i = 0; i < dictSize; ++i) {
         char ch;
-        if (symbol == "\\n")
-            ch = '\n';
-        else if (symbol == " ")
-            ch = ' ';
-        else
-            ch = symbol[0];
+        uint8_t codeLen;
 
-        data.reverseDict[code] = ch;
+        file.read(&ch, sizeof(char));
+        file.read(reinterpret_cast<char*>(&codeLen), sizeof(codeLen));
+        if (!file) throw std::runtime_error("Uszkodzony plik: blad slownika");
+
+        std::string code(codeLen, '0');
+        file.read(code.data(), codeLen);
+        if (!file) throw std::runtime_error("Uszkodzony plik: blad slownika");
+
+        cd.reverseDict[code] = ch;
     }
 
-    std::ostringstream bits;
-    bits << file.rdbuf();
-    data.bits = bits.str();
+    // 3) bitCount
+    file.read(reinterpret_cast<char*>(&cd.bitCount), sizeof(cd.bitCount));
+    if (!file) throw std::runtime_error("Uszkodzony plik: brak bitCount");
 
-    return data;
+    // 4) Dane: liczba bajtów to zaokrąglenie w górę liczby bitów do bajtów
+    size_t byteCount = (cd.bitCount + 7) / 8;
+    cd.data.resize(byteCount);
+
+    if (byteCount > 0) {
+        file.read(reinterpret_cast<char*>(cd.data.data()),
+                  static_cast<std::streamsize>(byteCount));
+        if (!file) throw std::runtime_error("Uszkodzony plik: dane binarne");
+    }
+
+    return cd;
 }

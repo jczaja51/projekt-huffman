@@ -44,6 +44,7 @@ Implementacja kolejki priorytetowej (kopca minimalnego) jako struktury tablicowe
 Logika algorytmu Huffmana:
 - zliczanie częstotliwości znaków,
 - budowa drzewa Huffmana,
+- pakowanie bitów do bajtów
 - generowanie kodów,
 - kompresja i dekompresja danych.
 
@@ -118,7 +119,7 @@ Wyświetlone zostanie menu:
 2. Podaj nazwę pliku wejściowego (`.txt`)
 3. Jeśli plik nie istnieje, program zapyta, czy go utworzyć
 4. Podaj nazwę pliku wyjściowego (`.huf`)
-5. Program wykona kompresję i wyświetli statystyki
+5. Program wykona kompresję
 
 #### Dekompresja pliku
 1. Wybierz opcję `2`
@@ -139,15 +140,18 @@ Wyświetlone zostanie menu:
 
 ### 6.2 Tryb linii poleceń (CLI)
 
+Uwaga: program automatycznie korzysta z katalogów input/ (wejście .txt) i output/ (wyniki .huf i .txt), 
+więc w trybie CLI podajemy same nazwy plików bez ścieżek.
+
 Program obsługuje również argumenty:
 
 #### Kompresja
 ```bash
-./projekt-aisd compress input.txt output.huf
+./projekt-aisd compress przyklad.txt wynik.huf
 ```
 #### Dekompresja
 ```bash
-./projekt-aisd decompress input.huf output.txt
+./projekt-aisd decompress wynik.huf odzyskany.txt
 ```
 #### Demo kolejki
 ```bash
@@ -155,19 +159,18 @@ Program obsługuje również argumenty:
 ```
 ## 7. Format pliku skompresowanego `.huf`
 
-Plik wynikowy ma format tekstowy:
-#HUFFMAN
-#DICT
-A:0110
-:110
-a:10
-#DATA
-011011111011001010...
+Plik wynikowy jest zapisywany w **formacie binarnym**.
 
+Zawartość pliku obejmuje:
+- słownik kodów Huffmana (znak -> kod binarny),
+- liczbę istotnych bitów,
+- zakodowany strumień danych zapisany jako **bity spakowane do bajtów**.
 
-- `#DICT` – słownik kodów Huffmana (znak → kod binarny),
-- `#DATA` – zakodowany strumień bitów.
+Ze względu na zapis binarny plik `.huf` jest **nieczytelny w edytorach tekstu**
+i może zawierać znaki sterujące (np. `NUL`, `ETX`, itp.).
 
+słownik kodów Huffmana jest zapisywany w pliku jako ciągi znaków '0' i '1' (dla prostoty i łatwego debugowania),
+natomiast właściwy strumień danych jest zapisywany binarnie jako bity spakowane do bajtów.
 
 ---
 
@@ -181,4 +184,3 @@ Program zawiera:
 - obsługę pustych plików,
 - walidację formatu pliku `.huf`,
 - czytelne komunikaty błędów zamiast awarii programu.
-

@@ -4,6 +4,16 @@
 #include <stdexcept>
 #include <functional>
 
+/*
+  MinHeap (kopiec minimalny) przechowywany w tablicy.
+
+  Reprezentacja indeksowa drzewa binarnego:
+  - parent(i) = (i - 1) / 2
+  - left(i)   = 2*i + 1
+  - right(i)  = 2*i + 2
+
+  Porządek elementów definiuje funkcja 'less(a,b)' (czy a ma wyższy priorytet niż b).
+*/
 template <typename T>
 class MinHeap {
 private:
@@ -12,6 +22,7 @@ private:
     int capacity;
     bool (*less)(const T&, const T&);
 
+    // Naprawa kopca po operacjach, które mogą "podnieść" element (insert, decreaseKey).
     void heapifyUp(int index) {
         while (index > 0) {
             int parent = (index - 1) / 2;
@@ -21,6 +32,7 @@ private:
         }
     }
 
+    // Naprawa kopca po operacjach, które mogą "opuścić" element (extractMin, buildFromArray/heapify).
     void heapifyDown(int index) {
         while (true) {
             int left = 2 * index + 1;
@@ -38,10 +50,11 @@ private:
     }
 
 public:
+    // Tworzy kopiec o zadanej pojemności; cmp definiuje "mniejsze" (priorytet).
     MinHeap(int capacity, bool (*cmp)(const T&, const T&))
         : data(nullptr), size(0), capacity(capacity), less(cmp) {
-        if (capacity < 0) throw std::runtime_error("Invalid capacity");
-        data = (capacity > 0) ? new T[capacity] : nullptr;
+        if (capacity <= 0) throw std::runtime_error("Invalid capacity");
+        data = new T[capacity];
     }
 
     ~MinHeap() {
@@ -51,6 +64,7 @@ public:
     [[nodiscard]] bool isEmpty() const { return size == 0; }
     [[nodiscard]] int getSize() const { return size; }
 
+    // Wstawia element i przywraca własność kopca (O(log n)).
     void insert(const T& value) {
         if (size == capacity) throw std::runtime_error("Heap overflow");
         data[size] = value;
@@ -58,6 +72,7 @@ public:
         size++;
     }
 
+    // Zwraca i usuwa element minimalny (korzeń) (O(log n)).
     T extractMin() {
         if (isEmpty()) throw std::runtime_error("Heap is empty");
         T min = data[0];
@@ -67,9 +82,10 @@ public:
         return min;
     }
 
+    // Buduje kopiec z tablicy: heapify od ostatniego rodzica w dół (klasycznie O(n)).
     void buildFromArray(const T* arr, int n) {
-        if (n < 0) throw std::runtime_error("Invalid n");
-        if (n > capacity) throw std::runtime_error("Array larger than heap capacity");
+        if (n < 0 || n > capacity)
+            throw std::runtime_error("Invalid array size");
 
         for (int i = 0; i < n; i++) data[i] = arr[i];
         size = n;
@@ -79,19 +95,23 @@ public:
         }
     }
 
+    // Zmniejsza "klucz" / priorytet elementu na danym indeksie i naprawia kopiec w górę.
     void decreaseKey(int index, const T& newValue) {
-        if (index < 0 || index >= size) throw std::runtime_error("Index out of range");
-        if (!less(newValue, data[index])) {
+        if (index < 0 || index >= size)
+            throw std::runtime_error("Index out of range");
+        if (!less(newValue, data[index]))
             throw std::runtime_error("New value does not decrease priority");
-        }
+
         data[index] = newValue;
         heapifyUp(index);
     }
 
+    // Pomocnicze wypisanie aktualnej zawartości kopca (kolejność tablicowa, nie "posortowana").
     void debugPrint(const std::function<void(const T&)>& printer) const {
         for (int i = 0; i < size; i++) {
             printer(data[i]);
         }
     }
 };
+
 #endif
